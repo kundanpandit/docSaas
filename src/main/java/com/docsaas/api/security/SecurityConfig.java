@@ -33,10 +33,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
             	    .requestMatchers("/", "/api/auth/**").permitAll()
+            	    .requestMatchers("/api/users").permitAll()
 
             	    .requestMatchers("/api/admin/**").hasRole("ADMIN")
             	    .requestMatchers("/api/users/**").hasAnyRole("USER", "ADMIN")
-
+            	    
             	    .anyRequest().authenticated()
             	)
 
