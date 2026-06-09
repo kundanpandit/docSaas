@@ -10,7 +10,8 @@ public class User {
 
     @Id
     private Long id;
-
+    
+    
     private String fullName;
     private String email;
     private String password;
@@ -19,6 +20,8 @@ public class User {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    public User() {}
 
     // getters & setters
     public Long getId() {

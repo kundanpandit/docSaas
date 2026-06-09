@@ -34,7 +34,7 @@ public class UserService {
 
         User user = repo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+        
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
@@ -73,13 +73,19 @@ public class UserService {
     
     
     public void promoteToAdmin(Long userId) {
+
         User user = repo.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            throw new RuntimeException("User is already an ADMIN");
+        }
 
         user.setRole("ADMIN");
         user.setUpdatedAt(LocalDateTime.now());
 
         repo.save(user);
     }
+
 
 }
