@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import LoginForm from "../components/LoginForm";
+import usePageTitle from "@/hooks/usePageTitle";
 
 const LoginPage = () => {
+  usePageTitle("Login");
   return (
     <div className="w-full max-w-md">
       {/* Logo / Brand */}

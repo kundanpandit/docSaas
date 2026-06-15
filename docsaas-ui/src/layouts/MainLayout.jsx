@@ -7,7 +7,6 @@ import Header from "@/components/layout/Header";
 const MainLayout = () => {
   return (
     <AppShell>
-      <div className="flex min-h-screen">
       <Sidebar />
 
       <div className="flex flex-1 flex-col">
@@ -17,7 +16,6 @@ const MainLayout = () => {
           <Outlet />
         </main>
       </div>
-    </div>
     </AppShell>
   );
 };
