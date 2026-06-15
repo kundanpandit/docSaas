@@ -1,10 +1,4 @@
-import {
-  LayoutDashboard,
-  FileText,
-  Upload,
-  Settings,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, FileText, Upload, Settings, Briefcase, } from "lucide-react";
 
 export const navigationItems = [
   {
@@ -23,13 +17,14 @@ export const navigationItems = [
     icon: Upload,
   },
   {
+  title: "Jobs",
+  path: "/jobs",
+  icon: Briefcase,
+},
+  {
     title: "Settings",
     path: "/settings",
     icon: Settings,
   },
-  {
-    title: "Profile",
-    path: "/profile",
-    icon: User,
-  },
+  
 ];

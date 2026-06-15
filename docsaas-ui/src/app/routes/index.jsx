@@ -12,12 +12,18 @@ import PublicRoute from "../../components/common/PublicRoute";
 import ErrorPage from "../../components/common/ErrorPage";
 import NotFoundPage from "../../components/common/NotFoundPage";
 
+import DocumentsPage from "../../features/pages/DocumentPage";
+import UploadPage from "../../features/pages/UploadPage";
+import JobsPage from "../../features/pages/JobsPage";
+import SettingsPage from "../../features/pages/SettingsPage";
+import HomePage1 from "../../features/home/pages/HomePage1";
+
 const router = createBrowserRouter([
      {
-    path: "/",
-    element: <HomePage />,
-    errorElement: <ErrorPage />,
-     },
+  path: "/",
+  element: <HomePage1 />,
+  errorElement: <ErrorPage />,
+},
 
   {
     element: <AuthLayout />,
@@ -38,17 +44,35 @@ const router = createBrowserRouter([
     ],
   },
 
-  {
-    element: <MainLayout />,
-    children: [
-      {
-        path: "/dashboard",
-        element: (<ProtectedRoute>
-          <DashboardPage />
-          </ProtectedRoute>),
-      },
-    ],
-  }, 
+ {
+  element: (
+    <ProtectedRoute>
+      <MainLayout />
+    </ProtectedRoute>
+  ),
+  children: [
+    {
+      path: "/dashboard",
+      element: <DashboardPage />,
+    },
+    {
+      path: "/documents",
+      element: <DocumentsPage />,
+    },
+    {
+      path: "/upload",
+      element: <UploadPage />,
+    },
+    {
+      path: "/jobs",
+      element: <JobsPage />,
+    },
+    {
+      path: "/settings",
+      element: <SettingsPage />,
+    },
+  ],
+}, 
   {
   path: "*",
   element: <NotFoundPage />,

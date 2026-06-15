@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import RegisterForm from "../components/RegisterForm";
+import usePageTitle from "@/hooks/usePageTitle";
 
 const RegisterPage = () => {
+  usePageTitle("Register");
   return (
     <div className="w-full max-w-md">
       {/* Logo / Brand */}

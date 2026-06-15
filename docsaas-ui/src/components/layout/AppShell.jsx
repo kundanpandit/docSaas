@@ -1,6 +1,6 @@
 const AppShell = ({ children }) => {
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen w-full">
       {children}
     </div>
   );

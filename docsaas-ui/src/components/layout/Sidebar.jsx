@@ -5,7 +5,7 @@ const Sidebar = () => {
   return (
     <aside className="hidden md:flex w-64 border-r bg-background flex-col">
       
-      <div className="border-b p-6">
+      <div className="h-16 border-b px-6 flex items-center">
         <h1 className="text-xl font-bold">
           DocSaaS
         </h1>
