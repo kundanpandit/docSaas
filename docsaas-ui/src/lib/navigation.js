@@ -1,30 +1,26 @@
-import { LayoutDashboard, FileText, Upload, Settings, Briefcase, } from "lucide-react";
+import { Briefcase, Coins, LayoutGrid, Settings } from "lucide-react";
 
+/** Workspace sidebar. "All tools" leaves the workspace for the public tool catalogue. */
 export const navigationItems = [
   {
-    title: "Dashboard",
-    path: "/dashboard",
-    icon: LayoutDashboard,
+    title: "All tools",
+    path: "/",
+    icon: LayoutGrid,
+    end: true,
   },
   {
-    title: "Documents",
-    path: "/documents",
-    icon: FileText,
+    title: "My jobs",
+    path: "/jobs",
+    icon: Briefcase,
   },
   {
-    title: "Upload",
-    path: "/upload",
-    icon: Upload,
+    title: "Credits",
+    path: "/credits",
+    icon: Coins,
   },
-  {
-  title: "Jobs",
-  path: "/jobs",
-  icon: Briefcase,
-},
   {
     title: "Settings",
     path: "/settings",
     icon: Settings,
   },
-  
 ];

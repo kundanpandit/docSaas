@@ -42,7 +42,7 @@ public class DocumentController {
     
     @GetMapping("/download/{id}")
     public ResponseEntity<InputStreamResource> download(@PathVariable Long id) throws IOException {
-        return service.downloadDocument(id);
+        return service.downloadDocument(id, SecurityUtil.getLoggedInUserId());
     }
     
     @DeleteMapping("/{id}")

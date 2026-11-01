@@ -1,0 +1,60 @@
+# Reverse proxy for api.docsaas.in. Traffic path: visitor -> Cloudflare (HTTPS) -> Caddy (HTTPS with a
+# Cloudflare Origin Certificate, "Full (strict)" mode) -> api:8080 on the private Docker network.
+{
+	# Only Cloudflare may tell us who the visitor is; anything else is ignored.
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+		trusted_proxies_strict
+		timeouts {
+			read_body 5m
+			read_header 15s
+			write 10m
+			idle 2m
+		}
+	}
+	# Certificates come from files (Cloudflare Origin CA), so no ACME / Let's Encrypt needed.
+	auto_https disable_certs
+	admin off
+}
+
+{$API_DOMAIN:api.docsaas.in} {
+	tls /certs/origin.pem /certs/origin.key
+
+	# Refuse anything that did not come through Cloudflare (direct-to-IP scans, bypass attempts).
+	@notCloudflare not remote_ip 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	abort @notCloudflare
+
+	# Uploads: up to 20 files x 50 MB is capped by Spring at 200 MB per request.
+	request_body {
+		max_size 210MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+		-X-Powered-By
+	}
+
+	encode zstd gzip
+
+	reverse_proxy api:8080 {
+		# The API trusts X-Forwarded-For only from this proxy (see application-prod.properties).
+		header_up X-Forwarded-For {client_ip}
+		header_up X-Forwarded-Proto https
+		header_up -CF-Connecting-IP
+		transport http {
+			response_header_timeout 10m
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

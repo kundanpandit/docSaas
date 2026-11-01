@@ -46,3 +46,25 @@ export const {
   useGoogleRegisterMutation,
   useGoogleLoginMutation,
 } = authApi;
+export const passwordApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    // Optional auth features the server has turned on (password reset needs email to be configured)
+    getAuthOptions: builder.query({
+      query: () => "/auth/options",
+      transformResponse: (response) => response.data,
+    }),
+    forgotPassword: builder.mutation({
+      query: (email) => ({ url: "/auth/forgot-password", method: "POST", body: { email } }),
+    }),
+    verifyResetToken: builder.query({
+      query: (token) => ({ url: "/auth/reset-password/verify", method: "POST", body: { token } }),
+      transformResponse: (response) => response.data,
+    }),
+    resetPassword: builder.mutation({
+      query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
+    }),
+  }),
+});
+
+export const { useGetAuthOptionsQuery, useForgotPasswordMutation, useVerifyResetTokenQuery, useResetPasswordMutation } =
+  passwordApi;

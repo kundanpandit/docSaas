@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Settings } from "lucide-react";
+import { Briefcase, Coins, LayoutGrid, LogOut, Settings } from "lucide-react";
 
 import { logout } from "@/features/auth/slice/authSlice";
 import { selectUser } from "@/features/auth/selectors/authSelectors";
@@ -38,15 +38,15 @@ const UserMenu = () => {
 
     dispatch(logout());
 
-    navigate("/login");
+    navigate("/", { replace: true });
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button>
+        <button aria-label="Account menu" className="rounded-full focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <Avatar>
-            <AvatarFallback>
+            <AvatarFallback className="bg-brand-gradient text-xs font-semibold text-white">
               {initials || "U"}
             </AvatarFallback>
           </Avatar>
@@ -55,7 +55,7 @@ const UserMenu = () => {
 
       <DropdownMenuContent
         align="end"
-        className="w-64"
+        className="surface-solid w-64 rounded-2xl p-1.5"
       >
         <div className="px-3 py-2">
           <p className="font-medium">
@@ -68,6 +68,21 @@ const UserMenu = () => {
         </div>
 
         <DropdownMenuSeparator />
+
+        <DropdownMenuItem onClick={() => navigate("/")} className="rounded-lg">
+          <LayoutGrid className="mr-2 h-4 w-4" />
+          All tools
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => navigate("/jobs")} className="rounded-lg">
+          <Briefcase className="mr-2 h-4 w-4" />
+          My jobs
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => navigate("/credits")} className="rounded-lg">
+          <Coins className="mr-2 h-4 w-4" />
+          Credits
+        </DropdownMenuItem>
 
         <DropdownMenuItem
           onClick={() =>

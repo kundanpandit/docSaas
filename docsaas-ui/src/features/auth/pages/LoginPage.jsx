@@ -3,43 +3,22 @@ import LoginForm from "../components/LoginForm";
 import usePageTitle from "@/hooks/usePageTitle";
 
 const LoginPage = () => {
-  usePageTitle("Login");
+  usePageTitle("Log in");
   return (
-    <div className="w-full max-w-md">
-      {/* Logo / Brand */}
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-blue-600">
-          DocSaaS
-        </h1>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Secure PDF tools for everyone
-        </p>
-      </div>
-
-      {/* Auth Card Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold">
-          Welcome Back 👋
-        </h2>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sign in to continue managing your documents.
-        </p>
+    <div className="w-full">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Log in for 30 credits a day, AI tools and your job history.</p>
       </div>
 
       <LoginForm />
 
-      {/* Footer Links */}
-      <div className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
-        <Link
-          to="/register"
-          className="font-medium text-blue-600 hover:text-blue-700"
-        >
-          Create Account
+        <Link to="/register" className="font-medium text-primary hover:underline">
+          Sign up free
         </Link>
-      </div>
+      </p>
     </div>
   );
 };

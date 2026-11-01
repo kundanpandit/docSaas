@@ -3,7 +3,10 @@ package com.docsaas.api.service;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+
+import com.docsaas.api.exception.ApiException;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -32,14 +35,14 @@ public class GoogleAuthService {
 
             GoogleIdToken idToken = verifier.verify(token);
 
-            if (idToken == null) {
-                throw new RuntimeException("Invalid Google token");
+            if (idToken != null) {
+                return idToken.getPayload();
             }
 
-            return idToken.getPayload();
-
         } catch (Exception e) {
-            throw new RuntimeException("Google token verification failed");
+            // fall through to the generic error below
         }
+
+        throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Google token verification failed");
     }
 }

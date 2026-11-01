@@ -1,3 +1,4 @@
+import "@/lib/zodConfig"; // must stay first: configures zod before any schema module loads
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -17,7 +18,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ReduxProvider>
         <App />
 
-        <Toaster />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            className: "glass-strong rounded-xl! text-sm! text-foreground!",
+            style: { background: "var(--glass-bg-strong)" },
+          }}
+        />
         
       </ReduxProvider>
     </GoogleOAuthProvider>

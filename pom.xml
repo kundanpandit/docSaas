@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -41,6 +41,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -95,8 +99,41 @@
 <dependency>
     <groupId>org.projectlombok</groupId>
     <artifactId>lombok</artifactId>
-    <version>1.18.30</version>
-    <scope>provided</scope>
+    <optional>true</optional>
+</dependency>
+
+<dependency>
+    <groupId>org.apache.pdfbox</groupId>
+    <artifactId>pdfbox</artifactId>
+    <version>3.0.8</version>
+</dependency>
+
+<!-- Job engine: JobRunr OSS (free). Persistent, retrying, distributed jobs stored in MySQL -->
+<dependency>
+    <groupId>org.jobrunr</groupId>
+    <artifactId>jobrunr-spring-boot-3-starter</artifactId>
+    <version>9.0.1</version>
+</dependency>
+
+<!-- OCR: Tesseract via Tess4J (bundles Windows natives; Linux needs libtesseract) -->
+<dependency>
+    <groupId>net.sourceforge.tess4j</groupId>
+    <artifactId>tess4j</artifactId>
+    <version>5.20.0</version>
+</dependency>
+
+<!-- WEBP read/write for ImageIO (bundles libwebp natives) -->
+<dependency>
+    <groupId>org.sejda.imageio</groupId>
+    <artifactId>webp-imageio</artifactId>
+    <version>0.1.6</version>
+</dependency>
+
+<!-- DOCX generation for PDF to Word -->
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>5.5.1</version>
 </dependency>
 
 
@@ -104,6 +141,20 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<!-- JDK 23+ no longer runs annotation processors implicitly -->
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

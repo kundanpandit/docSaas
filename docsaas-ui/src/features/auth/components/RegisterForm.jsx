@@ -56,7 +56,7 @@ const [googleRegisterApi] =
   );
 
   try {
-    const response = await registerUser(payload).unwrap();
+    await registerUser(payload).unwrap();
 
     toast.dismiss(loadingToast);
 
@@ -84,7 +84,7 @@ navigate("/login");
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-5"
+      className="space-y-4"
     >
 
     {/* <Button
@@ -172,17 +172,9 @@ navigate("/login");
 </div>
     </div>
 
-    <div className="relative">
-  <div className="absolute inset-0 flex items-center">
-    <span className="w-full border-t" />
-  </div>
-
-  <div className="relative flex justify-center text-xs uppercase">
-    <span className="bg-card px-3 text-muted-foreground">
-      Or continue with email
-    </span>
-  </div>
-</div>
+    <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+        Or continue with email
+      </div>
 
       {/* Full Name */}
       <div className="space-y-2">
@@ -193,11 +185,11 @@ navigate("/login");
         <Input
           {...register("name")}
           placeholder="John Doe"
-          className="h-14 px-5 text-base"
+          className="h-12 rounded-xl bg-background/60 px-4 text-base"
         />
 
         {errors.name && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.name.message}
           </p>
         )}
@@ -213,11 +205,11 @@ navigate("/login");
           {...register("email")}
           type="email"
           placeholder="john@example.com"
-          className="h-14 px-5 text-base"
+          className="h-12 rounded-xl bg-background/60 px-4 text-base"
         />
 
         {errors.email && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.email.message}
           </p>
         )}
@@ -234,7 +226,7 @@ navigate("/login");
             {...register("password")}
             type={showPassword ? "text" : "password"}
             placeholder="Create a strong password"
-            className="h-14 px-5 pr-12 text-base"
+            className="h-12 rounded-xl bg-background/60 px-4 pr-12 text-base"
           />
 
           <button
@@ -251,7 +243,7 @@ navigate("/login");
         </div>
 
         {errors.password && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.password.message}
           </p>
         )}
@@ -267,11 +259,11 @@ navigate("/login");
           {...register("confirmPassword")}
           type={showPassword ? "text" : "password"}
           placeholder="Confirm your password"
-          className="h-14 px-5 text-base"
+          className="h-12 rounded-xl bg-background/60 px-4 text-base"
         />
 
         {errors.confirmPassword && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.confirmPassword.message}
           </p>
         )}
@@ -280,7 +272,7 @@ navigate("/login");
      <Button
         type="submit"
         disabled={isSubmitting || isLoading}
-      className="h-14 w-full bg-blue-600 dark:text-white text-base font-semibold hover:bg-blue-700">
+      className="h-12 w-full rounded-xl text-base shadow-[0_10px_24px_-10px_var(--primary)]">
         {isLoading
           ? "Creating Account..."
           : "Create Account"}

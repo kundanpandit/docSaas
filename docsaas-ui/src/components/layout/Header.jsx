@@ -1,51 +1,27 @@
-import { Bell, Info } from "lucide-react";
-import toast from "react-hot-toast";
+import { useLocation } from "react-router-dom";
 
-import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
-
-import { Button } from "@/components/ui/button";
+import Logo from "@/components/common/Logo";
+import HeaderThemeToggle from "@/features/theme/components/HeaderThemeToggle";
+import UsageWidget from "@/features/usage/components/UsageWidget";
+import { navigationItems } from "@/lib/navigation";
 
 const Header = () => {
+  const { pathname } = useLocation();
+  const current = navigationItems.find((item) => !item.end && pathname.startsWith(item.path));
+
   return (
-    // <header className="w-full h-16 border-b px-6 flex items-center justify-between">
-     <header className="h-16 w-full border-b px-6 flex items-center justify-between"> 
-      <h2 className="font-semibold text-lg">
-        Dashboard
-      </h2>
-
-      <div className="flex items-center gap-2">
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() =>
-            toast(
-              "Free Plan • Credits: 950 • Storage: 12 MB / 100 MB"
-            )
-          }
-        >
-          <Info size={18} />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() =>
-            toast(
-              "Notifications are under development"
-            )
-          }
-        >
-          <Bell size={18} />
-        </Button>
-
-        <ThemeToggle />
-
-        <UserMenu />
-
+    <header className="glass sticky top-3 z-30 flex h-14 items-center justify-between rounded-2xl pl-4 pr-2 sm:top-4">
+      <div className="flex items-center gap-3">
+        <Logo compact className="md:hidden" />
+        <h2 className="font-semibold">{current?.title ?? "Workspace"}</h2>
       </div>
-      
+
+      <div className="flex items-center gap-1.5">
+        <UsageWidget />
+        <HeaderThemeToggle />
+        <UserMenu />
+      </div>
     </header>
   );
 };

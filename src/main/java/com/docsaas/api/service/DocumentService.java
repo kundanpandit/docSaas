@@ -1,23 +1,26 @@
 package com.docsaas.api.service;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.docsaas.api.enums.FileKind;
+import com.docsaas.api.exception.ApiException;
 import com.docsaas.api.model.Document;
+import com.docsaas.api.processing.FileTypeDetector;
 import com.docsaas.api.repository.DocumentRepository;
 
 
@@ -26,30 +29,44 @@ import com.docsaas.api.repository.DocumentRepository;
 public class DocumentService {
 
     private final DocumentRepository repo;
+    private final StorageService storage;
 
-    public DocumentService(DocumentRepository repo) {
+    public DocumentService(DocumentRepository repo, StorageService storage) {
         this.repo = repo;
+        this.storage = storage;
     }
 
-    public Document upload(MultipartFile file, Long userId) throws Exception {
+    public Document upload(MultipartFile file, Long userId) throws IOException {
 
-        // 1. Generate unique file name
-        String storedName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        if (file == null || file.isEmpty()) {
+            throw ApiException.badRequest("EMPTY_FILE", "Please select a non-empty file");
+        }
 
-        // 2. Build file path
-        Path path = Paths.get("C:/docsaas-storage/" + storedName);
+        // 1. Validate type from content, not from the client-supplied content type
+        FileKind kind;
+        try (InputStream in = file.getInputStream()) {
+            kind = FileTypeDetector.detect(in)
+                    .orElseThrow(() -> ApiException.badRequest("UNSUPPORTED_FILE_TYPE",
+                            "Only PDF, PNG and JPEG files are supported"));
+        }
+
+        // 2. Server-generated storage key; the original filename is only kept as metadata
+        String storedName = UUID.randomUUID().toString();
+        String key = "documents/" + userId + "/" + storedName;
 
         // 3. Save file to disk
-        Files.copy(file.getInputStream(), path);
+        try (InputStream in = file.getInputStream()) {
+            storage.save(key, in);
+        }
 
         // 4. Create Document object
         Document doc = new Document();
         doc.setUserId(userId);
         doc.setOriginalName(file.getOriginalFilename());
         doc.setStoredName(storedName);
-        doc.setFileType(file.getContentType());
+        doc.setFileType(kind.getMimeType());
         doc.setFileSize(file.getSize());
-        doc.setStoragePath(path.toString());
+        doc.setStoragePath(key);
         doc.setStatus("ACTIVE");
         doc.setCreatedAt(LocalDateTime.now());
         doc.setUpdatedAt(LocalDateTime.now());
@@ -57,47 +74,62 @@ public class DocumentService {
         // 5. Save to DB
         return repo.save(doc);
     }
-    
+
     public List<Document> getUserDocuments(Long userId) {
         return repo.findByUserId(userId);
     }
-    
-    
+
+
     // for download
-    public ResponseEntity<InputStreamResource> downloadDocument(Long docId) throws IOException {
+    public ResponseEntity<InputStreamResource> downloadDocument(Long docId, Long userId) throws IOException {
 
-        Document doc = repo.findById(docId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+        Document doc = findOwned(docId, userId);
 
-        File file = new File(doc.getStoragePath());
+        Path file;
+        try {
+            file = storage.resolve(doc.getStoragePath());
+        } catch (IllegalArgumentException e) {
+            // legacy rows stored absolute paths outside the storage root
+            throw ApiException.notFound("Document file not found");
+        }
+        if (!Files.exists(file)) {
+            throw ApiException.notFound("Document file not found");
+        }
 
-        InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
+        InputStreamResource resource = new InputStreamResource(Files.newInputStream(file));
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + doc.getOriginalName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(doc.getOriginalName(), StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(file.length())
+                .contentLength(Files.size(file))
                 .body(resource);
 
     }
-    
+
     // for deletion
     public void deleteDocument(Long docId, Long userId) {
 
-        Document doc = repo.findById(docId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+        Document doc = findOwned(docId, userId);
 
-        // TEMP ownership check
-        if (!doc.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized to delete this file");
-        }
-
-        File file = new File(doc.getStoragePath());
-        if (file.exists()) {
-            file.delete();
+        try {
+            storage.deleteQuietly(doc.getStoragePath());
+        } catch (IllegalArgumentException e) {
+            // legacy absolute path: nothing under our storage root to delete
         }
 
         repo.deleteById(docId);
+    }
+
+    /** Unknown and foreign documents both return 404 so ids cannot be probed. */
+    private Document findOwned(Long docId, Long userId) {
+        Document doc = repo.findById(docId)
+                .orElseThrow(() -> ApiException.notFound("Document not found"));
+
+        if (doc.getUserId() == null || !doc.getUserId().equals(userId)) {
+            throw ApiException.notFound("Document not found");
+        }
+        return doc;
     }
 
 
