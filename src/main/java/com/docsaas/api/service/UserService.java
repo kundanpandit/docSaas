@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.docsaas.api.dto.RegisterRequestDTO;
 import com.docsaas.api.dto.UserListResponse;
 import com.docsaas.api.dto.UserResponse;
+import com.docsaas.api.exception.ApiException;
 import com.docsaas.api.model.User;
 import com.docsaas.api.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -36,10 +38,12 @@ public class UserService {
     public UserResponse login(String email, String rawPassword) {
 
         User user = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+                .filter(u -> passwordEncoder.matches(rawPassword, u.getPassword()))
+                // Same message for unknown email and wrong password, to avoid account enumeration
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid email or password"));
+
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "This account is disabled");
         }
 
         UserResponse res = new UserResponse();
@@ -78,10 +82,10 @@ public class UserService {
     public void promoteToAdmin(Long userId) {
 
         User user = repo.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> ApiException.notFound("User not found"));
 
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-            throw new RuntimeException("User is already an ADMIN");
+            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_ADMIN", "User is already an ADMIN");
         }
 
         user.setRole("ADMIN");
@@ -93,7 +97,7 @@ public class UserService {
     public UserResponse register(RegisterRequestDTO request) {
 
         if (repo.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_EXISTS", "Email already registered");
         }
 
         User user = new User();
@@ -127,9 +131,7 @@ public class UserService {
         String email = payload.getEmail();
 
         if (repo.findByEmail(email).isPresent()) {
-            throw new RuntimeException(
-                    "Account already exists. Please login."
-            );
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_EXISTS", "Account already exists. Please login.");
         }
 
         User user = new User();
@@ -174,9 +176,7 @@ public class UserService {
 
         User user = repo.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not registered. Please create an account first."
-                        ));
+                        new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_REGISTERED", "User not registered. Please create an account first."));
 
         UserResponse response = new UserResponse();
 

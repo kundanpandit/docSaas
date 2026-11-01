@@ -1,0 +1,116 @@
+# Production stack for one server. Run from the deploy/ folder:
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Only Caddy is reachable from outside (ports 80/443, and the firewall allows those only from Cloudflare).
+# MySQL, the API and the workers live on a private network with no published ports.
+
+x-app-env: &app-env
+  SPRING_PROFILES_ACTIVE: prod
+  DB_URL: jdbc:mysql://mysql:3306/docsaas_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+  DB_USERNAME: docsaas
+  DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://docsaas.in,https://www.docsaas.in}
+  FRONTEND_URL: ${FRONTEND_URL:-https://docsaas.in}
+  AI_BASE_URL: ${AI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_MODEL: ${AI_MODEL:-gemini-3.5-flash}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:-DocSaaS <no-reply@docsaas.in>}
+  JOBRUNR_DASHBOARD_PASSWORD: ${JOBRUNR_DASHBOARD_PASSWORD:?set JOBRUNR_DASHBOARD_PASSWORD in .env}
+  TZ: Asia/Kolkata
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: docsaas_db
+      MYSQL_USER: docsaas                      # the app's own user, limited to docsaas_db
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+      TZ: Asia/Kolkata
+    command: ["--max-connections=100", "--skip-name-resolve"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  # REST API: validates uploads, enqueues jobs, serves results. Never processes files itself.
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: docsaas-api:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      JOB_WORKER_ENABLED: "false"
+      JOBRUNR_DASHBOARD_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8000:8000"   # JobRunr dashboard: server-local only, open it through an SSH tunnel
+    volumes:
+      - storage:/data/storage
+    networks: [backend]
+    logging: *logging
+
+  # Background workers: process jobs from the MySQL-backed queue. Scale: --scale worker=2
+  worker:
+    image: docsaas-api:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      <<: *app-env
+      JOB_WORKER_ENABLED: "true"
+      JOB_WORKERS: ${JOB_WORKERS:-2}
+      JOBRUNR_DASHBOARD_ENABLED: "false"
+      PORT: "8081"
+    volumes:
+      - storage:/data/storage   # shared with api: uploads in, results out
+    networks: [backend]
+    logging: *logging
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.docsaas.in}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro          # Cloudflare Origin Certificate: origin.pem + origin.key
+      - caddy-data:/data
+    networks: [backend]
+    logging: *logging
+
+networks:
+  backend:
+
+volumes:
+  mysql-data:
+  storage:
+  caddy-data:

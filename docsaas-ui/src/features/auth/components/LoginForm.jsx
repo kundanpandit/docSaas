@@ -15,10 +15,10 @@ import { setCredentials } from "@/features/auth/slice/authSlice";
 import { storage } from "@/lib/storage";
 import { AUTH_PROVIDER } from "@/constants/authProvider";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useGetUsageQuery } from "@/features/usage/api/usageApi";
 import { GoogleLogin } from "@react-oauth/google";
-import { useGoogleLoginMutation } from "@/features/auth/api/authApi";
-import { useGoogleLogin } from "@react-oauth/google";
+import { useGetAuthOptionsQuery, useGoogleLoginMutation } from "@/features/auth/api/authApi";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -48,6 +48,37 @@ const LoginForm = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Guest numbers, to show how much logging in adds
+  const { data: guestUsage } = useGetUsageQuery("guest");
+  // "Forgot password?" only when the server can actually send the email
+  const { data: authOptions } = useGetAuthOptionsQuery();
+
+  /** Saves the session, celebrates the credit increase and returns to where the user came from. */
+  const finishLogin = (response, provider) => {
+    storage.setToken(response.data.token);
+    storage.setUser(response.data.user);
+
+    dispatch(
+      setCredentials({
+        user: response.data.user,
+        accessToken: response.data.token,
+        provider,
+      })
+    );
+
+    const daily = guestUsage?.userDaily ?? 30;
+    const before = guestUsage?.guestDaily ?? 3;
+    const name = response.data.user?.fullName?.split(" ")[0];
+    // clear any error toasts left from earlier failed attempts
+    toast.dismiss();
+    toast.success(
+      `Welcome${name ? `, ${name}` : ""}! Your credits went up from ${before} to ${daily} a day, and AI tools are unlocked.`,
+      { duration: 6000 }
+    );
+
+    navigate(location.state?.from || "/", { replace: true });
+  };
 
   const onSubmit = async (data) => {
   try {
@@ -59,20 +90,7 @@ const LoginForm = () => {
       return;
     }
 
-    storage.setToken(response.data.token);
-    storage.setUser(response.data.user);
-
-    dispatch(
-      setCredentials({
-        user: response.data.user,
-        accessToken: response.data.token,
-        provider: AUTH_PROVIDER.LOCAL,
-      })
-    );
-
-    toast.success("Login successful");
-
-    navigate("/dashboard", { replace: true });
+    finishLogin(response, AUTH_PROVIDER.LOCAL);
 
   } catch (error) {
     resetField("password");
@@ -91,7 +109,7 @@ const LoginForm = () => {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-5"
+      className="space-y-4"
     >
 
       
@@ -135,22 +153,7 @@ const LoginForm = () => {
 
           toast.dismiss(loadingToast);
 
-          storage.setToken(response.data.token);
-          storage.setUser(response.data.user);
-
-          dispatch(
-            setCredentials({
-              user: response.data.user,
-              accessToken: response.data.token,
-              provider: AUTH_PROVIDER.GOOGLE,
-            })
-          );
-
-          toast.success("Login successful");
-
-          navigate("/dashboard", {
-            replace: true,
-          });
+          finishLogin(response, AUTH_PROVIDER.GOOGLE);
 
       } catch (error) {
 
@@ -184,16 +187,8 @@ const LoginForm = () => {
 </div>
 
       {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">
-            Or continue with email
-          </span>
-        </div>
+      <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+        Or continue with email
       </div>
 
       {/* Email */}
@@ -206,11 +201,11 @@ const LoginForm = () => {
           {...register("email")}
           type="email"
           placeholder="john@example.com"
-          className="h-14 px-5 text-base"
+          className="h-12 rounded-xl bg-background/60 px-4 text-base"
         />
 
         {errors.email && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.email.message}
           </p>
         )}
@@ -223,12 +218,14 @@ const LoginForm = () => {
             Password
           </label>
 
-          <button
-            type="button"
-            className="text-sm text-blue-600 hover:text-blue-700"
-          >
-            Forgot Password?
-          </button>
+          {authOptions?.passwordReset && (
+            <Link
+              to="/forgot-password"
+              className="text-sm text-primary hover:underline"
+            >
+              Forgot password?
+            </Link>
+          )}
         </div>
 
         <div className="relative">
@@ -236,7 +233,7 @@ const LoginForm = () => {
             {...register("password")}
             type={showPassword ? "text" : "password"}
             placeholder="Enter your password"
-            className="h-14 px-5 pr-12 text-base"
+            className="h-12 rounded-xl bg-background/60 px-4 pr-12 text-base"
           />
 
           <button
@@ -253,7 +250,7 @@ const LoginForm = () => {
         </div>
 
         {errors.password && (
-          <p className="text-sm text-red-500">
+          <p className="text-sm text-destructive">
             {errors.password.message}
           </p>
         )}
@@ -262,7 +259,7 @@ const LoginForm = () => {
       <Button
   type="submit"
   disabled={isSubmitting || isLoading}
-  className="h-14 w-full bg-blue-600 dark:text-white text-base font-semibold hover:bg-blue-700"
+  className="h-12 w-full rounded-xl text-base shadow-[0_10px_24px_-10px_var(--primary)]"
 >
   {isSubmitting || isLoading
     ? "Signing In..."

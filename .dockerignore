@@ -1,0 +1,12 @@
+target/
+storage/
+tessdata/
+config/
+docsaas-ui/
+*.zip
+*.docx
+.git/
+deploy/
+.claude/
+.github/
+*.md

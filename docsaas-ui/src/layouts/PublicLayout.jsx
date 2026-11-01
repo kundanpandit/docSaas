@@ -1,18 +1,21 @@
 import { Outlet } from "react-router-dom";
 
-import PublicHeader from "@/features/home/components/PublicHeader";
-import PublicFooter from "@/features/home/components/PublicFooter";
+import Header from "@/features/home/components/Header";
+import Footer from "@/features/home/components/Footer";
+import AuroraBackground from "@/components/effects/AuroraBackground";
 
+/** Public site: floating glass header, aurora background, glass footer. Pages add their own top spacing. */
 const PublicLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <PublicHeader />
+    <div className="relative flex min-h-screen flex-col">
+      <AuroraBackground />
+      <Header />
 
       <main className="flex-1">
         <Outlet />
       </main>
 
-      <PublicFooter />
+      <Footer />
     </div>
   );
 };

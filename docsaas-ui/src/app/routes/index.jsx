@@ -1,34 +1,54 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import AuthLayout from "../../layouts/AuthLayout";
 import MainLayout from "../../layouts/MainLayout";
+import PublicLayout from "../../layouts/PublicLayout";
 
 import LoginPage from "../../features/auth/pages/LoginPage";
 import RegisterPage from "../../features/auth/pages/RegisterPage";
-import DashboardPage from "../../features/dashboard/pages/DashboardPage";
-import HomePage from "../../features/home/pages/HomePage";
+import ForgotPasswordPage from "../../features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../../features/auth/pages/ResetPasswordPage";
 import ProtectedRoute from "../../components/common/ProtectedRoute";
 import PublicRoute from "../../components/common/PublicRoute";
 import ErrorPage from "../../components/common/ErrorPage";
 import NotFoundPage from "../../components/common/NotFoundPage";
 
-import DocumentsPage from "../../features/pages/DocumentPage";
-import UploadPage from "../../features/pages/UploadPage";
+import CreditsPage from "../../features/pages/CreditsPage";
 import JobsPage from "../../features/pages/JobsPage";
 import SettingsPage from "../../features/pages/SettingsPage";
-import HomePage1 from "../../features/home/pages/HomePage1";
+import HomePage from "../../features/home/pages/HomePage";
+import ToolPage from "../../features/tools/pages/ToolPage";
 
 const router = createBrowserRouter([
-     {
-  path: "/",
-  element: <HomePage1 />,
-  errorElement: <ErrorPage />,
-},
+  // Public product pages: no login required (FR-001)
+  {
+    element: <PublicLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        path: "/",
+        element: <HomePage />,
+      },
+      {
+        // The dashboard was removed; keep old links working
+        path: "/dashboard",
+        element: <Navigate to="/" replace />,
+      },
+      {
+        path: "/tools/:toolId",
+        element: <ToolPage />,
+      },
+      {
+        path: "*",
+        element: <NotFoundPage />,
+      },
+    ],
+  },
 
   {
     element: <AuthLayout />,
     children: [
-        
+
       {
         path: "/login",
         element: (<PublicRoute>
@@ -41,27 +61,34 @@ const router = createBrowserRouter([
           <RegisterPage />
           </PublicRoute>),
       },
+      {
+        path: "/forgot-password",
+        element: (
+          <PublicRoute>
+            <ForgotPasswordPage />
+          </PublicRoute>
+        ),
+      },
+      {
+        // Not behind PublicRoute: the emailed link must work even in a browser that is logged in
+        path: "/reset-password",
+        element: <ResetPasswordPage />,
+      },
     ],
   },
 
+ // Phase 2 workspace (authenticated)
  {
   element: (
     <ProtectedRoute>
       <MainLayout />
     </ProtectedRoute>
   ),
+  errorElement: <ErrorPage />,
   children: [
     {
-      path: "/dashboard",
-      element: <DashboardPage />,
-    },
-    {
-      path: "/documents",
-      element: <DocumentsPage />,
-    },
-    {
-      path: "/upload",
-      element: <UploadPage />,
+      path: "/credits",
+      element: <CreditsPage />,
     },
     {
       path: "/jobs",
@@ -72,13 +99,10 @@ const router = createBrowserRouter([
       element: <SettingsPage />,
     },
   ],
-}, 
-  {
-  path: "*",
-  element: <NotFoundPage />,
-}
+},
+  // (the 404 route lives inside the public layout above)
 
-  
+
 ]);
 
 export default router;

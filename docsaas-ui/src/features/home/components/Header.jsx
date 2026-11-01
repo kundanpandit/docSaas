@@ -1,364 +1,240 @@
-import { Link } from "react-router-dom";
-import {
-  FileText,
-  Sparkles,
-  Menu,
-  X,
-  ChevronDown,
-  SunMoon,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, Lock, Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import Container from "@/components/common/Container";
+import Logo from "@/components/common/Logo";
+import UserMenu from "@/components/layout/UserMenu";
 import HeaderThemeToggle from "@/features/theme/components/HeaderThemeToggle";
-import { useState } from "react";
+import UsageWidget from "@/features/usage/components/UsageWidget";
+import { selectIsAuthenticated } from "@/features/auth/selectors/authSelectors";
+import { TOOL_CATEGORIES } from "@/features/home/constants/tools";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "FAQ", href: "/#faq" },
+];
+
+/** Mega menu listing every tool by category. Opens on hover or keyboard focus. */
+const ToolsMenu = () => {
+  const { pathname } = useLocation();
+  const locked = !useSelector(selectIsAuthenticated);
+  // Remember which page the menu was opened on: navigating anywhere closes it.
+  const [openAt, setOpenAt] = useState(null);
+  const open = openAt === pathname;
+  const setOpen = (value) => setOpenAt(value ? pathname : null);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        Tools
+        <ChevronDown size={15} className={cn("transition-transform duration-200", open && "rotate-180")} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="absolute left-1/2 top-full z-50 w-[640px] -translate-x-1/2 pt-3"
+          >
+            <div className="surface-solid grid grid-cols-4 gap-1 rounded-2xl p-3">
+              {TOOL_CATEGORIES.map((category) => (
+                <div key={category.id}>
+                  <p className="px-2.5 pb-1.5 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {category.label}
+                  </p>
+                  {category.tools.map((tool) => (
+                    <Link
+                      key={tool.id}
+                      to={`/tools/${tool.id}`}
+                      className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                    >
+                      <span className={cn(!tool.available && "text-muted-foreground")}>{tool.title}</span>
+                      {!tool.available && <span className="text-[10px] text-muted-foreground">Soon</span>}
+                      {tool.available && locked && category.id === "ai" && (
+                        <Lock size={12} className="shrink-0 text-muted-foreground" aria-label="Log in to use" />
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const MobileMenu = ({ open, onClose, isAuthenticated }) => (
+  <AnimatePresence>
+    {open && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm lg:hidden"
+        />
+        <motion.nav
+          initial={{ opacity: 0, y: -12, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -12, scale: 0.98 }}
+          transition={{ duration: 0.18 }}
+          aria-label="Mobile"
+          className="surface-solid fixed inset-x-4 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl p-4 lg:hidden"
+        >
+          {TOOL_CATEGORIES.map((category) => (
+            <div key={category.id} className="mb-3">
+              <p className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {category.label}
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                {category.tools.map((tool) => (
+                  <Link
+                    key={tool.id}
+                    to={`/tools/${tool.id}`}
+                    onClick={onClose}
+                    className={cn("rounded-lg px-2 py-2 text-sm hover:bg-accent", !tool.available && "text-muted-foreground")}
+                  >
+                    {tool.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="mt-2 flex flex-col gap-1 border-t pt-3">
+            {NAV_LINKS.map((link) => (
+              <a key={link.href} href={link.href} onClick={onClose} className="rounded-lg px-2 py-2 text-sm hover:bg-accent">
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {isAuthenticated ? (
+              <>
+                <Button asChild variant="outline" size="lg" className="h-11 rounded-xl">
+                  <Link to="/jobs" onClick={onClose}>My jobs</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="h-11 rounded-xl">
+                  <Link to="/credits" onClick={onClose}>Credits</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="lg" className="h-11 rounded-xl">
+                  <Link to="/login" onClick={onClose}>Log in</Link>
+                </Button>
+                <Button asChild size="lg" className="h-11 rounded-xl">
+                  <Link to="/register" onClick={onClose}>Sign up free</Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </motion.nav>
+      </>
+    )}
+  </AnimatePresence>
+);
 
 const Header = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpenAt, setMobileOpenAt] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const mobileOpen = mobileOpenAt === pathname;
+  const setMobileOpen = (value) => setMobileOpenAt(value ? pathname : null);
+
   return (
-    <>
-      {/* Announcement Bar
-    <div className="border-b border-border bg-background">
-        <div className="container mx-auto flex h-9 items-center justify-center px-4 text-sm text-muted-foreground">
-          🚀 Get 25 Free Credits on Google Sign Up
-        </div>
-      </div> */}
+    <header className="fixed inset-x-0 top-0 z-50 pt-3">
+      <Container>
+        <div className="relative z-50 flex h-14 items-center justify-between rounded-2xl pl-3 pr-2">
+          {/* The glass sits on its own layer behind the content. If the bar itself had backdrop-filter,
+              Chrome would composite the Tools dropdown (a child that overflows the bar) see-through. */}
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 -z-10 rounded-2xl transition-all duration-300",
+              scrolled || mobileOpen ? "surface-solid" : "border border-transparent"
+            )}
+          />
+          <Logo />
 
-      {/* mobileMenuOpen */}
-
-      <div
-        onClick={() => setMobileMenuOpen(false)}
-        className={`fixed inset-0 z-1000 bg-black/50 transition-opacity duration-300 ${mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      />
-
-      {/* Main Header */}
-
-      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/50 bg-background/75 backdrop-blur-xl transition-all duration-300 ">
-        <div className="container mx-auto flex h-18 items-center justify-between px-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg">
-              <FileText size={20} />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold">DocSaaS</h2>
-
-              <p className="text-xs text-muted-foreground">
-                AI Document Workspace
-              </p>
-            </div>
-          </Link>
-
-          {/* flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary */}
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {/* Tools */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary outline-none">
-                Tools
-                <ChevronDown size={16} />
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="start"
-                sideOffset={12}
-                className="
-                        w-56
-                        rounded-2xl
-                        border
-                        bg-background/95
-                        backdrop-blur-xl
-                        p-2
-                        shadow-2xl
-                        data-[state=open]:animate-in
-                        data-[state=closed]:animate-out
-                        data-[state=closed]:fade-out-0
-                        data-[state=open]:fade-in-0"
+          <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+            <ToolsMenu />
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Merge PDF
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Split PDF
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Compress PDF
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  PDF to Word
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Word to PDF
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  PDF to Images
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Images to PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* AI Tools */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary outline-none">
-                AI Tools
-                <ChevronDown size={16} />
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="start"
-                sideOffset={12}
-                className="
-                        w-56
-                        rounded-2xl
-                        border
-                        bg-background/95
-                        backdrop-blur-xl
-                        p-2
-                        shadow-2xl
-                        data-[state=open]:animate-in
-                        data-[state=closed]:animate-out
-                        data-[state=closed]:fade-out-0
-                        data-[state=open]:fade-in-0"
-              >
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  AI PDF Summary
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className="
-                        rounded-xl
-                        cursor-pointer
-                        py-3 "
-                >
-                  Chat With PDF
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Features */}
-            <a
-              href="#tools"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Features
-            </a>
-
-            {/* Pricing */}
-            <a
-              href="#why-docsaas"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Pricing
-            </a>
-
-            {/* Resources */}
-            <a
-              href="#faq"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Resources
-            </a>
-
-            {/* Contact */}
-            <a
-              href="#footer"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Contact
-            </a>
+                {link.label}
+              </a>
+            ))}
           </nav>
 
-          {/* Right Side */}
-          <div className="flex items-center gap-3">
-            {/* AI Badge */}
-            <div className="hidden md:flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
-              <Sparkles size={14} />
-              AI Powered
-            </div>
-
-            {/* Theme Toggle  */}
+          <div className="flex items-center gap-1.5">
+            <UsageWidget />
             <HeaderThemeToggle />
-            {/* Login */}
-            {/* <Button variant="ghost" asChild className="hidden md:flex">
-              <Link to="/login">Login</Link>
-            </Button> */}
 
-            {/* LOGIN */}
-            <Button asChild a size="lg"
-            className="hidden lg:flex px-6" >
-                <Link to="/login">
-                    Login
-                </Link>
+            {isAuthenticated ? (
+              <UserMenu />
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="lg" className="hidden h-9 rounded-xl px-3 sm:flex">
+                  <Link to="/login">Log in</Link>
                 </Button>
+                <Button asChild size="lg" className="hidden h-9 rounded-xl px-4 shadow-[0_6px_20px_-8px_var(--primary)] sm:flex">
+                  <Link to="/register">Sign up free</Link>
+                </Button>
+              </>
+            )}
 
-            {/* Mobile Menu */}
             <Button
-              size="icon"
+              size="icon-lg"
               variant="ghost"
-              className="lg:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="rounded-xl lg:hidden"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen(!mobileOpen)}
             >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {mobileOpen ? <X /> : <Menu />}
             </Button>
           </div>
         </div>
-      </header>
+      </Container>
 
-        
-      <div 
-      className={`
-                fixed
-                top-0
-                right-0
-                z-1001
-                h-screen
-                w-[85vw] max-w-95
-                border-l
-                bg-background
-                shadow-2xl
-                transition-transform
-                duration-300
-                ease-in-out
-                ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}
-            `}
-      >
-        <div className="flex h-18 items-center justify-between border-b px-6">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg">
-              <FileText size={20} />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold">DocSaaS</h2>
-
-              <p className="text-xs text-muted-foreground">
-                AI Document Workspace
-              </p>
-            </div>
-          </Link>
-
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <X size={20} />
-          </Button>
-        </div>
-
-        <div className="flex flex-col px-6 py-8">
-          <a
-            href="#tools"
-            className=" rounded-xl px-4 py-4 text-basefont-medium transition-colors hover:bg-accent "
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Tools
-          </a>
-
-          <a
-            href="#ai-features"
-            className=" rounded-xl px-4 py-4 text-basefont-medium transition-colors hover:bg-accent "
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            AI Features
-          </a>
-
-          <a
-            href="#why-docsaas"
-            className=" rounded-xl px-4 py-4 text-basefont-medium transition-colors hover:bg-accent "
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Why DocSaaS
-          </a>
-
-          <a
-            href="#faq"
-            className=" rounded-xl px-4 py-4 text-basefont-medium transition-colors hover:bg-accent "
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            FAQ
-          </a>
-
-          <a
-            href="#footer"
-            className=" rounded-xl px-4 py-4 text-basefont-medium transition-colors hover:bg-accent "
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Contact
-          </a>
-
-          <div className="mt-6 border-t pt-6">
-            <Button
-              variant="secondary"
-              size="lg"
-              className="mb-3 w-full"
-              asChild
-            >
-              <Link to="/login">Login</Link>
-            </Button>
-
-            <Button className="w-full" asChild>
-              <Link to="/register">Start Free</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
+      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} isAuthenticated={isAuthenticated} />
+    </header>
   );
 };
 
